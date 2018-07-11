@@ -1,0 +1,127 @@
+---
+title: "Prediction Assignment"
+author: "Careme Carty"
+date: "2 July 2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##**Predictive Assignment**
+
+###**Executive Summary**
+#####*The goal of this project is to predict the manner in which people did the exercise, using the "classe" variable in the training set, where the use any of the other variables maybe used. A report would be created to describing how the model was built, how cross validation was used, what is expected out of sample error, and why the choices were made. The prediction model would also be used to predict 20 different test cases.*
+
+
+###**Background**
+#####*Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).*
+
+###**Data**
+
+#####The training data for this project are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+#####The test data are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+#####The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+
+#####*According to Velloso, E. et al (2013), Participants were asked to perform one set of 10 repetitions of the Unilateral Dumberbell Biceps Curl in five different fachions which are identified in the "Classes" variable. Class A - exactly according to the specification, Class B - throwing the elbows to the front, Class C - lifting the dumbbell only halfway, Class D - lowering the dumbbell only halfway and Class E - throwing the hips to the front. Class A is stated to be specified excution of the exercise while the other four B-E are common mistakes in the execution of the exercise*
+
+```{r, echo = TRUE}
+setwd("C:/Users/Caremecc/Documents/Coursera/Practical Machine Learning")
+##Load files in to the training and test data sets which will be used in R
+##installing and loading the "caret" in to r
+library(caret)
+##For reproducibility a seed is set
+set.seed(10)
+```
+
+#####*The relevant data was loaded to a file to which the the necessary training and testing data will be extracted from. This data will be cleaned by trying to get rid of columns with empty cells or "Na". Additionally, there are data columns that will not be used for the predictions which are columns (1-7) that are removed from the datasets and therefore the analysis.*
+
+```{r, echo = TRUE}
+trainingData <- read.csv("C:/Users/Caremecc/Documents/Coursera/Practical Machine Learning/pml-training.csv", na.strings = c("NA", "DIV/0!",""))
+trainingData <- trainingData[, -c(1:7)]
+trainingData <- trainingData[ ,colSums(is.na(trainingData))== 0]
+
+testData <- read.csv("C:/Users/Caremecc/Documents/Coursera/Practical Machine Learning/pml-testing.csv", na.strings = c("NA", "DIV/0!",""))
+testData <- testData[, -c(1:7)]
+testData <- testData[ ,colSums(is.na(testData))== 0]
+```
+
+```{r, echo = TRUE}
+##Given that the evaluation will be done on the variable "classe", the summary can be provided
+summary(trainingData$classe)
+```
+
+#####*The summary shows the number of participates that perform the exercise properly versus those that did them incorrectly. To begin the analysis the training data set will be segemented so that cross validation can be preformed, where the data would be separated or in other words, subsampled into two sets of data which would contain 75% for training and 25% for testing, using a random sample without replacement for the cross validation.*
+
+```{r, echo = TRUE}
+STrainData <- createDataPartition(y = trainingData$classe, p = 0.75, list = FALSE)
+samptrain <- trainingData[STrainData, ]
+samptest <- trainingData[-STrainData, ]
+
+dim(samptrain)
+dim(samptest)
+```
+
+###**Eploratory Data**
+#####*The graphs below will give a display of how the data looks of the variable "classe"*
+
+```{r, echo = TRUE}
+plot(samptrain$classe, col = "Green", xlab = "Classe", ylab = "Frequency", main = "Bar Graph of the Train set data of participants")
+```
+
+###**Model Fit**
+#####*The Decision tree and Random Forest model will be use to predict. Random Forest is stated to be more accurate and will be applied to the training data set then and then used to predict the variable Classe for the cross validation on the subsampled data set for testing. It would be demonstrated to validate this statement.*
+
+```{r, echo = TRUE}
+library(randomForest)
+```
+
+###**Random Forest**
+#####*The random forest is being executed below on the subsampled training data and the summary stattistics below show that the error rate is 0.44% 
+```{r, echo = TRUE}
+set.seed(10)
+##This first model would be the Random Forest with the training data set.
+RFModel <- randomForest(classe ~., data = samptrain, method = "class")
+RFModel
+```
+
+#####*However below shows the prediction of the random forest on the subsampled training data set on the subsampled test data set.*
+```{r, echo = TRUE}
+##Cross validating on the test data set
+PredTrain <- predict(RFModel, newdata = samptest, type = "class")
+CMatrixRF <- confusionMatrix(samptest$classe, PredTrain)
+CMatrixRF
+```
+
+###**Decision Tree**
+#####*The analysis below shows the Decision Trees 
+```{r, echo = TRUE}
+set.seed(10)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+DTmodel <- rpart(classe ~ ., data = samptrain, method = "class")
+fancyRpartPlot(DTmodel)
+```
+
+#####*The predicted model on the decision tree is cross validated on to the subsample test data set*
+```{r, echo = TRUE}
+DTmodelPred <- predict(DTmodel, samptest, type = "class")
+confusionMatrix(samptest$classe, DTmodelPred)
+```
+
+#####*The analysis below shows the predicted analysis of the more accuracy model, random forest algorithm on the original test data that was original downlown from the source.*
+```{r, echo = TRUE}
+Testalgopred <- predict(RFModel, testData, type = "class")
+Testalgopred
+```
+
+###**Conclusion**
+#####*In conclusion the accuracy of the random forest model was much more accurate then that of the decision trees model which resulted in accuracy measures of 0.9937 and 0.721 respectively and the expected out of sample error is estimated to be approximately 0.0063 or 0.63%, which tells us that there will not be many or none of the test samples that will be misclassified.*
+
+
