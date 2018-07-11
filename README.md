@@ -1,2 +1,1 @@
-# Practical_Machine
-# by Careme Carty
+# Practical_Machine by Careme Carty
